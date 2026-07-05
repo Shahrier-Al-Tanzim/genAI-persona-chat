@@ -1,5 +1,5 @@
 import { createGroq } from "@ai-sdk/groq";
-import { streamText, tool, convertToModelMessages } from 'ai';
+import { streamText, tool, convertToModelMessages, isStepCount } from 'ai';
 import { personas, PersonaId } from '@/lib/personas';
 import { z } from 'zod';
 // Initialize the official Groq provider
@@ -27,11 +27,14 @@ export async function POST(req: Request) {
     // Convert frontend UIMessages to core ModelMessages format
     const coreMessages = await convertToModelMessages(messages);
 
+    const systemPrompt = `${persona.systemPrompt}\n\nCRITICAL INSTRUCTION: You are currently active as ${persona.name}. You MUST adopt this persona entirely. If there are previous messages in the history where you acted as a different mentor, IGNORE THEM. You are now ${persona.name}.`;
+
     try {
         const result = await streamText({
             model: groq('llama-3.1-8b-instant'),
-            system: persona.systemPrompt,
+            system: systemPrompt,
             messages: coreMessages,
+            stopWhen: isStepCount(5),
             tools : {
                 switchPersona: tool({
                     description : `Change the current active persona/mentor. If the user asks to switch personas, or asks you to act as the other persona, you MUST call this tool. Do NOT just roleplay the switch.`,

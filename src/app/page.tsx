@@ -21,16 +21,27 @@ export default function Home() {
     scrollToBottom();
   }, [messages]);
 
-  // Sync the active persona from any switchPersona tool calls
+  // Sync the active persona from any switchPersona tool calls or text hallucinations
   useEffect(() => {
     const latestMessage = messages[messages.length - 1];
     if (latestMessage && latestMessage.role === 'assistant') {
       latestMessage.parts.forEach((part) => {
+        // Native tool call parsing
         if (part.type === 'tool-switchPersona') {
           const inputArgs = (part as any).input;
           if (inputArgs?.personaId) {
             setActivePersona(inputArgs.personaId.toLowerCase() as PersonaId);
           }
+        }
+        
+        // Fallback: Llama 3 8B sometimes hallucinates the tool call as raw text
+        if (part.type === 'text') {
+           const lowerText = part.text.toLowerCase();
+           if (lowerText.includes('switchpersona') && lowerText.includes('piyush')) {
+               setActivePersona("piyush");
+           } else if (lowerText.includes('switchpersona') && lowerText.includes('hitesh')) {
+               setActivePersona("hitesh");
+           }
         }
       });
     }
@@ -66,7 +77,14 @@ export default function Home() {
           <PersonaSwitcher
             activePersona={activePersona}
             onSwitch={(id) => {
-              setActivePersona(id);
+              if (id !== activePersona) {
+                // Send the message under the OLD persona's context so they trigger the switch tool call
+                sendMessage(
+                  { text: `Switch to ${personas[id].name}` }, 
+                  { body: { personaId: activePersona } }
+                );
+                setActivePersona(id);
+              }
               setIsSidebarOpen(false); // Close sidebar on mobile after selection
             }}
           />
@@ -109,15 +127,40 @@ export default function Home() {
                       {/* Render each part (text or tool call) */}
                       {m.parts.map((part, idx) => {
                         if (part.type === 'text') {
+                          // Hide hallucinated tool calls from the chat UI
+                          if (part.text.includes('switchPersona')) {
+                             return (
+                               <span key={idx} className="italic text-emerald-400 flex items-center gap-2 my-1 bg-emerald-950/20 p-2 rounded-lg text-sm border border-emerald-800/30">
+                                 <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                 </svg>
+                                 Switched persona
+                               </span>
+                             );
+                          }
                           return <span key={idx}>{part.text}</span>;
                         }
                         if (part.type.startsWith('tool-')) {
+                           const isDone = (part as any).state === 'output-available';
                            return (
-                             <span key={idx} className="italic text-slate-400 flex items-center gap-2 my-1 bg-slate-900/50 p-2 rounded-lg text-sm border border-slate-700">
-                               <svg className="w-4 h-4 animate-spin text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                               </svg>
-                               Switching persona...
+                             <span 
+                               key={idx} 
+                               className={`italic flex items-center gap-2 my-1 p-2 rounded-lg text-sm border ${
+                                 isDone 
+                                   ? 'bg-emerald-950/20 border-emerald-800/30 text-emerald-400' 
+                                   : 'bg-slate-900/50 border-slate-700 text-slate-400'
+                               }`}
+                             >
+                               {isDone ? (
+                                 <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                 </svg>
+                               ) : (
+                                 <svg className="w-4 h-4 animate-spin text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                 </svg>
+                               )}
+                               {isDone ? 'Switched persona' : 'Switching persona...'}
                              </span>
                            );
                         }
