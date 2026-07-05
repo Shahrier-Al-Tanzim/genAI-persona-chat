@@ -14,7 +14,7 @@ export default function PersonaSwitcher({ activePersona, onSwitch }: Props) {
         
         const hiteshTheme = "from-amber-100/90 to-orange-100/90 border-orange-300 text-orange-950 shadow-md shadow-orange-500/5";
         const piyushTheme = "from-blue-600/95 to-indigo-600/95 border-blue-400 text-white shadow-md shadow-indigo-500/15";
-        const inactiveTheme = "bg-white/30 border-white/20 hover:bg-white/50 text-slate-700 hover:text-slate-900";
+        const inactiveTheme = "bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--text-primary)] hover:opacity-90";
 
         let activeStyle = "";
         if (isActive) {
@@ -30,7 +30,7 @@ export default function PersonaSwitcher({ activePersona, onSwitch }: Props) {
             className={`relative overflow-hidden w-full p-4 rounded-xl border-2 transition-all duration-300 ease-out flex items-center gap-4 text-left ${isActive ? 'bg-gradient-to-br shadow-lg scale-[1.02] ' + activeStyle : activeStyle}`}
           >
             {/* Avatar Profile Picture or Placeholder */}
-            <div className={`relative w-12 h-12 shrink-0 rounded-full flex items-center justify-center text-xl font-bold shadow-inner overflow-hidden ${isActive ? 'bg-white/20 text-current' : 'bg-white/40 text-slate-600'}`}>
+            <div className={`relative w-12 h-12 shrink-0 rounded-full flex items-center justify-center text-xl font-bold shadow-inner overflow-hidden ${isActive ? 'bg-white/20 text-current' : 'bg-[var(--avatar-bg)] text-[var(--avatar-text)]'}`}>
               {persona.avatarUrl ? (
                  <Image 
                    src={persona.avatarUrl} 

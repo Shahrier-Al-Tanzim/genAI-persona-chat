@@ -9,6 +9,31 @@ export default function Home() {
   const [activePersona, setActivePersona] = useState<PersonaId>("hitesh");
   const [input, setInput] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
+    if (savedTheme) {
+      setTheme(savedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      setTheme('dark');
+    }
+  }, []);
+
+  // Sync class name on document root
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+  };
 
   const { messages, sendMessage, status } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -57,7 +82,7 @@ export default function Home() {
   const isLoading = status === 'submitted' || status === 'streaming';
 
   return (
-    <main className="flex h-screen bg-transparent font-sans selection:bg-blue-900 overflow-hidden">
+    <main className={`flex h-screen bg-transparent font-sans selection:bg-blue-900 overflow-hidden ${theme === 'dark' ? 'dark' : ''}`}>
       
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
@@ -68,10 +93,10 @@ export default function Home() {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-30 w-72 bg-slate-50/80 backdrop-blur-xl border-r border-slate-200 p-4 flex flex-col transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className={`fixed inset-y-0 left-0 z-30 w-72 bg-[var(--sidebar-bg)] backdrop-blur-xl border-r border-[var(--sidebar-border)] p-4 flex flex-col transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <header className="mb-6 mt-2 px-2">
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">AI Mentor</h1>
-          <p className="text-sm text-slate-600 mt-1">Select your mentor</p>
+          <h1 className="text-2xl font-extrabold text-[var(--text-primary)] tracking-tight">AI Mentor</h1>
+          <p className="text-sm text-[var(--text-secondary)] mt-1">Select your mentor</p>
         </header>
         <div className="flex-1 overflow-y-auto scrollbar-hide">
           <PersonaSwitcher
@@ -89,22 +114,46 @@ export default function Home() {
             }}
           />
         </div>
+
+        {/* Theme Toggle Button */}
+        <div className="mt-auto pt-4 border-t border-[var(--sidebar-border)]">
+          <button 
+            onClick={toggleTheme}
+            className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-primary)] hover:opacity-90 transition-all shadow-sm font-semibold text-sm cursor-pointer"
+          >
+            {theme === 'light' ? (
+              <>
+                <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.413 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.46 5.05L5.75 4.343a1 1 0 10-1.414 1.414l.707.707zM5 10a1 1 0 11-2 0 1 1 0 012 0zm.75 4.343a1 1 0 111.414 1.414l-.707.707a1 1 0 01-1.414-1.414l.707-.707z"/>
+                </svg>
+                Light Theme
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+                </svg>
+                Dark Theme
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col h-screen min-w-0 bg-white/10 backdrop-blur-sm">
+      <div className="flex-1 flex flex-col h-screen min-w-0 chat-container bg-[var(--chat-bg)]">
         
         {/* Mobile Header (Hamburger) */}
-        <div className="md:hidden flex items-center p-4 border-b border-slate-200 bg-white/40 backdrop-blur-md shrink-0">
+        <div className="md:hidden flex items-center p-4 border-b border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] backdrop-blur-md shrink-0">
           <button 
             onClick={() => setIsSidebarOpen(true)} 
-            className="text-slate-800 hover:text-slate-900 p-1.5 rounded-lg bg-white/50 border border-white/30 shadow-sm"
+            className="text-[var(--text-primary)] hover:opacity-80 p-1.5 rounded-lg bg-[var(--card-bg)] border border-[var(--card-border)] shadow-sm"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
           </button>
-          <span className="ml-4 font-bold text-slate-900 truncate">{personas[activePersona].name}</span>
+          <span className="ml-4 font-bold text-[var(--text-primary)] truncate">{personas[activePersona].name}</span>
         </div>
 
         {/* Messages Area */}
@@ -112,12 +161,12 @@ export default function Home() {
           <div className="max-w-3xl mx-auto space-y-6 pb-4">
             {messages.length === 0 ? (
               <div className="h-[60vh] flex flex-col items-center justify-center text-center px-4">
-                <div className="bg-white/70 backdrop-blur-md border border-slate-200 p-8 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.12)] max-w-md animate-bubble">
-                  <h2 className="text-2xl font-black text-slate-900 mb-2">Welcome to GenAI Persona</h2>
-                  <p className="text-slate-700 text-sm leading-relaxed mb-6 font-medium">
+                <div className="bg-[var(--card-bg)] backdrop-blur-md border border-[var(--card-border)] p-8 rounded-3xl shadow-[0_20px_40px_var(--shadow-color-heavy)] max-w-md animate-bubble">
+                  <h2 className="text-2xl font-black text-[var(--text-primary)] mb-2">Welcome to GenAI Persona</h2>
+                  <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-6 font-medium">
                     Pick your coding mentor from the sidebar, or simply type a request to get started. You can ask them to swap at any time!
                   </p>
-                  <div className="text-xs text-slate-500 border-t border-slate-200/50 pt-4 font-semibold">
+                  <div className="text-xs text-[var(--text-muted)] border-t border-[var(--card-border)] pt-4 font-semibold">
                     Powered by Groq LLaMA-3 & Vercel AI SDK
                   </div>
                 </div>
@@ -131,15 +180,15 @@ export default function Home() {
                        {m.parts.map((p, i) => p.type === 'text' ? <span key={i}>{p.text}</span> : null)}
                      </div>
                   ) : (
-                    <div className="bg-white/80 backdrop-blur-md text-slate-900 border border-slate-200/80 px-5 py-3 rounded-2xl rounded-tl-none max-w-[90%] md:max-w-[85%] whitespace-pre-wrap shadow-[0_8px_30px_rgba(0,0,0,0.06)] animate-bubble font-medium">
+                    <div className="bg-[var(--bubble-assistant-bg)] backdrop-blur-md text-[var(--text-primary)] border border-[var(--bubble-assistant-border)] px-5 py-3 rounded-2xl rounded-tl-none max-w-[90%] md:max-w-[85%] whitespace-pre-wrap shadow-[0_8px_30px_var(--shadow-color)] animate-bubble font-medium">
                       {/* Render each part (text or tool call) */}
                       {m.parts.map((part, idx) => {
                         if (part.type === 'text') {
                           // Hide hallucinated tool calls from the chat UI
                           if (part.text.includes('switchPersona')) {
                              return (
-                               <span key={idx} className="italic text-emerald-800 flex items-center gap-2 my-1 bg-emerald-50 border border-emerald-200/50 p-2 rounded-lg text-sm shadow-[0_4px_12px_rgba(16,185,129,0.08)] animate-bubble font-semibold">
-                                 <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                               <span key={idx} className="italic text-emerald-600 dark:text-emerald-400 flex items-center gap-2 my-1 bg-emerald-500/10 border border-emerald-500/25 p-2 rounded-lg text-sm shadow-[0_4px_12px_var(--shadow-color)] animate-bubble font-semibold">
+                                 <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                  </svg>
                                  Switched persona
@@ -153,18 +202,18 @@ export default function Home() {
                            return (
                              <span 
                                key={idx} 
-                               className={`italic flex items-center gap-2 my-1 p-2 rounded-lg text-sm border shadow-[0_4px_12px_rgba(0,0,0,0.03)] animate-bubble font-semibold ${
+                               className={`italic flex items-center gap-2 my-1 p-2 rounded-lg text-sm border shadow-[0_4px_12px_var(--shadow-color)] animate-bubble font-semibold ${
                                  isDone 
-                                   ? 'bg-emerald-50 border-emerald-200/50 text-emerald-800' 
-                                   : 'bg-white/80 border-white/60 text-slate-600'
+                                   ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400' 
+                                   : 'bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--text-secondary)]'
                                }`}
                              >
                                {isDone ? (
-                                 <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                                 <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                  </svg>
                                ) : (
-                                 <svg className="w-4 h-4 animate-spin text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                 <svg className="w-4 h-4 animate-spin text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                  </svg>
                                )}
@@ -182,7 +231,7 @@ export default function Home() {
 
             {isLoading && (
               <div className="flex justify-start">
-                 <div className="bg-white/80 backdrop-blur-md text-slate-700 border border-slate-200 px-5 py-3 rounded-2xl rounded-tl-none animate-pulse shadow-[0_8px_30px_rgba(0,0,0,0.05)] font-semibold">
+                 <div className="bg-[var(--bubble-assistant-bg)] backdrop-blur-md text-[var(--text-secondary)] border border-[var(--bubble-assistant-border)] px-5 py-3 rounded-2xl rounded-tl-none animate-pulse shadow-[0_8px_30px_var(--shadow-color)] font-semibold">
                    Typing...
                  </div>
               </div>
@@ -194,12 +243,12 @@ export default function Home() {
         {/* Input Area */}
         <div className="p-4 md:p-6 bg-transparent shrink-0">
           <div className="max-w-3xl mx-auto">
-            <form onSubmit={handleSubmit} className="flex gap-3 bg-white/80 backdrop-blur-md border border-slate-200 p-2 rounded-2xl shadow-[0_12px_30px_rgba(0,0,0,0.08)] focus-within:ring-2 focus-within:ring-blue-400/40 focus-within:border-blue-400/80 transition-all">
+            <form onSubmit={handleSubmit} className="flex gap-3 bg-[var(--input-bg)] backdrop-blur-md border border-[var(--input-border)] p-2 rounded-2xl shadow-[0_12px_30px_var(--shadow-color)] focus-within:ring-2 focus-within:ring-blue-400/40 focus-within:border-blue-400/80 transition-all">
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask your mentor a question..."
-                className="flex-1 bg-transparent text-slate-900 placeholder-slate-500 px-4 py-3 focus:outline-none font-medium"
+                className="flex-1 bg-transparent text-[var(--text-primary)] placeholder-[var(--text-muted)] px-4 py-3 focus:outline-none font-medium"
               />
               <button 
                 type="submit" 
