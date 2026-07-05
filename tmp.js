@@ -1,39 +1,28 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useChat } from "@ai-sdk/react"
+import { useChat } from "ai/react"
 import PersonaSwitcher from "@/components/PersonaSwitcher"
 import { PersonaId } from "@/lib/personas"
 
 export default function Home() {
   const [activePersona, setActivePersona] = useState<PersonaId>("hitesh");
-  const [input, setInput] = useState("");
 
-  const { messages, sendMessage, status } = useChat();
-
-  // Sync the active persona from any switchPersona tool calls
-  useEffect(() => {
-    const latestMessage = messages[messages.length - 1];
-    if (latestMessage && latestMessage.role === 'assistant') {
-      latestMessage.parts.forEach((part) => {
-        if (part.type === 'tool-switchPersona') {
-          const inputArgs = (part as any).input;
-          if (inputArgs?.personaId) {
-            setActivePersona(inputArgs.personaId.toLowerCase() as PersonaId);
-          }
-        }
-      });
+  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+    api: "/api/chat",
+    body: {
+      personaId: activePersona
+    },
+    // Intercept tool calls from the AI
+    onToolCall({ toolCall }) {
+      if (toolCall.toolName === 'switchPersona') {
+        const newPersona = toolCall.args.personaId as PersonaId;
+        setActivePersona(newPersona);
+        // We return a simulated result so the AI knows the tool succeeded
+        return "Successfully switched persona!";
+      }
     }
-  }, [messages]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-    sendMessage({ text: input }, { body: { personaId: activePersona } });
-    setInput("");
-  };
-
-  const isLoading = status === 'submitted' || status === 'streaming';
+  });
 
   return (
     <main className="min-h-screen bg-slate-950 p-6 font-sans selection:bg-blue-900">
@@ -72,29 +61,24 @@ export default function Home() {
                   
                   {m.role === 'user' ? (
                      <div className="bg-blue-600 text-white px-6 py-3 rounded-2xl rounded-tr-sm max-w-[80%]">
-                       {m.parts.map((p, i) => p.type === 'text' ? <span key={i}>{p.text}</span> : null)}
+                       {m.content}
                      </div>
                   ) : (
                     <div className="bg-slate-800 text-slate-200 px-6 py-3 rounded-2xl rounded-tl-sm max-w-[80%] whitespace-pre-wrap">
-                      {/* Render each part (text or tool call) */}
-                      {m.parts.map((part, idx) => {
-                        if (part.type === 'text') {
-                          return <span key={idx}>{part.text}</span>;
-                        }
-                        if (part.type.startsWith('tool-')) {
-                           return (
-                             <span key={idx} className="italic text-slate-400 flex items-center gap-2">
-                               🔄 Switching persona...
-                             </span>
-                           );
-                        }
-                        return null;
-                      })}
+                      {/* If it's a tool call, show a system message instead of blank text */}
+                      {m.toolInvocations ? (
+                        <span className="italic text-slate-400 flex items-center gap-2">
+                          🔄 Switching persona...
+                        </span>
+                      ) : (
+                        m.content
+                      )}
                     </div>
                   )}
                 </div>
               ))
             )}
+
 
             {isLoading && (
               <div className="flex justify-start">
@@ -110,7 +94,7 @@ export default function Home() {
             <form onSubmit={handleSubmit} className="flex gap-4">
               <input
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={handleInputChange}
                 placeholder="Ask your mentor a question or say 'Switch to Piyush'..."
                 className="flex-1 bg-slate-900 text-slate-100 border border-slate-700 rounded-xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
               />

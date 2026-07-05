@@ -1,12 +1,10 @@
-import { createOpenAI } from "@ai-sdk/openai";
-import { streamText} from 'ai'
-import {personas, PersonaId} from '@/lib/personas'
-
-// Initialize The OpenAi provider to use Groq's base URL and API key
-
-const groq = createOpenAI({
+import { createGroq } from "@ai-sdk/groq";
+import { streamText, tool, convertToModelMessages } from 'ai';
+import { personas, PersonaId } from '@/lib/personas';
+import { z } from 'zod';
+// Initialize the official Groq provider
+const groq = createGroq({
     apiKey: process.env.GROQ_API_KEY,
-    baseURL : 'https://api.groq.com/openai/v1',
 });
 
 // Set the runtime ot edge for the best performance
@@ -15,6 +13,7 @@ export const runtime = 'edge';
 export async function POST(req: Request) {
     // Extract messages and personaID from the request body
     const { messages, personaId } = await req.json();
+    console.log("RECEIVED MESSAGES:", JSON.stringify(messages, null, 2));
 
     // Find the selected persona from our configuration
     const persona = personas[personaId as PersonaId];
@@ -25,11 +24,30 @@ export async function POST(req: Request) {
 
     // ak LLm o stream a response using the selected persona's system prompt
 
-    const result = await streamText({
-        model: groq('llama3-8b-8192'),
-        system: persona.systemPrompt,
-        messages,
-    });
+    // Convert frontend UIMessages to core ModelMessages format
+    const coreMessages = await convertToModelMessages(messages);
 
-    return result.toTextStreamResponse();
+    try {
+        const result = await streamText({
+            model: groq('llama-3.1-8b-instant'),
+            system: persona.systemPrompt,
+            messages: coreMessages,
+            tools : {
+                switchPersona: tool({
+                    description : `Change the current active persona/mentor. If the user asks to switch personas, or asks you to act as the other persona, you MUST call this tool. Do NOT just roleplay the switch.`,
+                    inputSchema: z.object({
+                        personaId: z.enum(["hitesh", "piyush"]).describe("The ID of the persona to switch to")
+                    }),
+                    execute: async ({ personaId }) => {
+                        return `Successfully switched persona to ${personaId}`;
+                    }
+                })
+            }
+        });
+
+        return result.toUIMessageStreamResponse();
+    } catch (e: any) {
+        console.error("STREAM ERROR:", e);
+        return new Response(e.message, { status: 500 });
+    }
 }
