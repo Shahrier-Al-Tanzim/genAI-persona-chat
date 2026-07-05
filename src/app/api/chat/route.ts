@@ -34,6 +34,7 @@ export async function POST(req: Request) {
             model: groq('llama-3.1-8b-instant'),
             system: systemPrompt,
             messages: coreMessages,
+            maxSteps: 5,
             tools : {
                 switchPersona: tool({
                     description : `Change the current active persona/mentor. If the user asks to switch personas, or asks you to act as the other persona, you MUST call this tool. Do NOT just roleplay the switch.`,
