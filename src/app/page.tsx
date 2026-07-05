@@ -21,16 +21,27 @@ export default function Home() {
     scrollToBottom();
   }, [messages]);
 
-  // Sync the active persona from any switchPersona tool calls
+  // Sync the active persona from any switchPersona tool calls or text hallucinations
   useEffect(() => {
     const latestMessage = messages[messages.length - 1];
     if (latestMessage && latestMessage.role === 'assistant') {
       latestMessage.parts.forEach((part) => {
+        // Native tool call parsing
         if (part.type === 'tool-switchPersona') {
           const inputArgs = (part as any).input;
           if (inputArgs?.personaId) {
             setActivePersona(inputArgs.personaId.toLowerCase() as PersonaId);
           }
+        }
+        
+        // Fallback: Llama 3 8B sometimes hallucinates the tool call as raw text
+        if (part.type === 'text') {
+           const lowerText = part.text.toLowerCase();
+           if (lowerText.includes('switchpersona') && lowerText.includes('piyush')) {
+               setActivePersona("piyush");
+           } else if (lowerText.includes('switchpersona') && lowerText.includes('hitesh')) {
+               setActivePersona("hitesh");
+           }
         }
       });
     }

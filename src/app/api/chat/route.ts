@@ -27,10 +27,12 @@ export async function POST(req: Request) {
     // Convert frontend UIMessages to core ModelMessages format
     const coreMessages = await convertToModelMessages(messages);
 
+    const systemPrompt = `${persona.systemPrompt}\n\nCRITICAL INSTRUCTION: You are currently active as ${persona.name}. You MUST adopt this persona entirely. If there are previous messages in the history where you acted as a different mentor, IGNORE THEM. You are now ${persona.name}.`;
+
     try {
         const result = await streamText({
             model: groq('llama-3.1-8b-instant'),
-            system: persona.systemPrompt,
+            system: systemPrompt,
             messages: coreMessages,
             tools : {
                 switchPersona: tool({
