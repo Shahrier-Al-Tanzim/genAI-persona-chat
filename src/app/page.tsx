@@ -120,6 +120,17 @@ export default function Home() {
                       {/* Render each part (text or tool call) */}
                       {m.parts.map((part, idx) => {
                         if (part.type === 'text') {
+                          // Hide hallucinated tool calls from the chat UI
+                          if (part.text.includes('switchPersona')) {
+                             return (
+                               <span key={idx} className="italic text-slate-400 flex items-center gap-2 my-1 bg-slate-900/50 p-2 rounded-lg text-sm border border-slate-700">
+                                 <svg className="w-4 h-4 animate-spin text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                 </svg>
+                                 Switching persona...
+                               </span>
+                             );
+                          }
                           return <span key={idx}>{part.text}</span>;
                         }
                         if (part.type.startsWith('tool-')) {
